@@ -1,0 +1,11 @@
+CFLAGS += -std=c11 -g0 -Ofast -march=skylake-avx512
+CFLAGS += -mprefer-vector-width=256
+#CFLAGS += -fopenmp
+
+CC = gcc
+
+all:
+	$(CC) sum.c -o sum $(CFLAGS)
+
+clean:
+	rm sum *.o

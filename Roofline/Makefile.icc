@@ -1,0 +1,26 @@
+CC = icc
+CFLAGS = -O3 -xCORE-AVX512 -qopt-zmm-usage=high -ffreestanding -qopenmp -DSTREAM_ARRAY_SIZE=80000000 -DNTIMES=100 
+CFLAGS += -qopenmp 
+
+FF = g77
+FFLAGS = -O3
+
+all: stream dgemm
+
+stream_f.exe: stream.f mysecond.o
+	$(CC) $(CFLAGS) -c mysecond.c
+	$(FF) $(FFLAGS) -c stream.f
+	$(FF) $(FFLAGS) stream.o mysecond.o -o stream_f.exe
+
+stream: stream.c
+	$(CC) $(CFLAGS) stream.c -o stream
+
+dgemm: dgemm.c
+	$(CC) $(CFLAGS) dgemm.c -o dgemm -mkl
+
+clean:
+	rm -f stream dgemm
+
+# an example of a more complex build line for the Intel icc compiler
+stream.icc: stream.c
+	cc -ffreestanding -qopenmp -DSTREAM_ARRAY_SIZE=80000000 -DNTIMES=20 stream.c -o stream.omp.AVX2.80M.20x.icc

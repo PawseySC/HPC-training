@@ -1,0 +1,25 @@
+CFLAGS += -std=c11 -g -Ofast -xCORE_AVX512
+CFLAGS += -qopt-zmm-usage=high
+#CFLAGS += -qopenmp
+
+CC = icc
+
+all:
+	$(CC) sum.c -o sum $(CFLAGS)
+
+ADVPRJ=rl
+
+survey:
+	advixe-cl -collect survey -project-dir $(ADVPRJ) -- ./sum 
+	advixe-cl -c tripcounts -flop -project-dir $(ADVPRJ) --search-dir src:=./ --search-dir bin:=./ -- ./sum 
+
+
+roofline:
+	#advixe-cl -collect survey -project-dir $(ADVPRJ) -- ./nbody_sp 65536
+	#advixe-cl -collect tripcounts -flop -project-dir $(ADVPRJ) -- ./nbody_sp 65536
+	#advixe-cl -collect roofline -project-dir $(ADVPRJ) --search-dir src:=./ --search-dir bin:=./ -- ./nbody_sp 65536
+	advixe-cl --collect roofline -project-dir $(ADVPRJ) --search-dir src:=./ --search-dir bin:=./ -- ./sum
+	advixe-cl --snapshot -project-dir $(ADVPRJ) --pack --cache-sources --cache-binaries --search-dir src:=./ --search-dir bin:=./ -- ./sum
+
+clean:
+	rm sum *.o
