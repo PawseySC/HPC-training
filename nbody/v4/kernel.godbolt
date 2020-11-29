@@ -1,0 +1,72 @@
+#define FLOAT double
+#define TILE_SIZE 16
+#define SOFTENING 1e-20
+//#define INVSQRT 1./sqrt
+#define INVSQRT inv_sqrt
+
+inline
+double
+inv_sqrt(double ix)
+{
+        double w = ix*0.5;
+        double x = ix;
+        x = 1.f/sqrtf((float) x);
+        x = x*(1.5 - w*x*x);
+        //x = x*(1.5 - w*x*x);
+        return x;
+}
+
+
+typedef struct
+{
+        FLOAT* __restrict__ x;
+        FLOAT* __restrict__ y;
+        FLOAT* __restrict__ z;
+        FLOAT* __restrict__ vx;
+        FLOAT* __restrict__ vy;
+        FLOAT* __restrict__ vz;
+} Body;
+
+void bodyForce(Body *p, FLOAT const dt, int n)
+{
+//long int count = 0;
+#pragma omp parallel for schedule(guided)
+        for (int ii = 0; ii < n; ii += TILE_SIZE)
+        {
+                FLOAT Fx[TILE_SIZE]; memset(&Fx, 0., TILE_SIZE*sizeof(FLOAT));
+                FLOAT Fy[TILE_SIZE]; memset(&Fy, 0., TILE_SIZE*sizeof(FLOAT));
+                FLOAT Fz[TILE_SIZE]; memset(&Fz, 0., TILE_SIZE*sizeof(FLOAT));
+                //
+//__asm volatile("# LLVM-MCA-BEGIN foo");
+#pragma unroll(TILE_SIZE)
+                for (int jj = 0; jj < n; jj += 1)
+#pragma vector aligned(64)
+                        for (int jb = ii; jb < ii + TILE_SIZE; jb += 1)
+                        {
+                                const FLOAT dx = p->x[jj] - p->x[jb]; // 1 flop 2 loads
+                                const FLOAT dy = p->y[jj] - p->y[jb]; // 1 flop 2 loads
+                                const FLOAT dz = p->z[jj] - p->z[jb]; // 1 flop 2 loads
+                                //
+                                const FLOAT dist        = dx*dx + dy*dy + dz*dz + SOFTENING; // 6 flops
+                                //
+                                //const FLOAT invSqrtDist = INVSQRT(dist);// 2 fLops (?)
+                                FLOAT invSqrtDist = pow(dist, 3./2.);
+                                //
+                                const FLOAT rr = invSqrtDist*invSqrtDist*invSqrtDist;  // 3 flops
+                                //
+                                Fx[jb - ii] += dx/rr; // 2 fLops
+                                Fy[jb - ii] += dy/rr; // 2 flops
+                                Fz[jb - ii] += dz/rr; // 2 flops
+                        }  // 20 flops,
+                //
+//__asm volatile("# LLVM-MCA-END");
+
+#pragma omp parallel for
+                for (int jj = 0; jj < TILE_SIZE; jj += 1)
+                {
+                        p->vx[ii + jj] += dt*Fx[jj]; // 2 flops
+                        p->vy[ii + jj] += dt*Fy[jj]; // 2 flops
+                        p->vz[ii + jj] += dt*Fz[jj]; // 2 flops
+                }
+        }
+}
