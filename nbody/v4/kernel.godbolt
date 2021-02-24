@@ -1,3 +1,6 @@
+#include <math.h>
+#include <cstring>
+
 #define FLOAT double
 #define TILE_SIZE 16
 #define SOFTENING 1e-20
