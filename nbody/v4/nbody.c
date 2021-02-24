@@ -78,8 +78,8 @@ void bodyForce(Body *p, FLOAT const dt, int n)
 				const FLOAT dy = p->y[jj] - p->y[jb]; // 1 flop 2 loads
 				const FLOAT dz = p->z[jj] - p->z[jb]; // 1 flop 2 loads
 				//
-				const FLOAT dist        = dx*dx + dy*dy + dz*dz + SOFTENING; // 6 flops
-				const FLOAT invSqrtDist = ONE/SQRT(dx*dx + dy*dy + dz*dz + (FLOAT) SOFTENING);                     // 2 fLops (?)
+				const FLOAT dist        = dx*dx + dy*dy + dz*dz + (FLOAT) SOFTENING; // 6 flops
+				const FLOAT invSqrtDist = ONE/SQRT(dist);                     // 2 fLops (?)
 				//
 				const FLOAT rr = invSqrtDist*invSqrtDist*invSqrtDist;  // 3 flops
 				//
